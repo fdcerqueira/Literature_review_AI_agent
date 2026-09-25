@@ -127,7 +127,7 @@ impl Tool for DownloadPubMed {
         })
     }
 
-async fn call(&self,_context: &mut ToolContext,args: Self::Args)-> Result<Self::Output, Self::Error>{
+async fn call(&self,_context:&mut ToolContext,args:Self::Args)-> Result<Self::Output, Self::Error>{
     
     let client =PmcClient::new();
     let mut results_err=String::new();
@@ -201,7 +201,7 @@ impl Tool for SearchBiorXvir {
                     "description" : "Year from which preprints are searched for"
                 },
                 "limit": {
-                    "type" : "integer",
+                    "type":"integer",
                     "description" : "Maximum number of preprints to return. Use 20 or fewer unless the user asks for more."
                 },
             },
@@ -254,7 +254,7 @@ impl Tool for DownloadBiorXvir {
         json!({
             "type": "object",
             "properties": {
-                "output_dir": {
+                "output_dir":{
                 "type" : "string",
                 "description" : "Folder where the papers are saved. Use the folder the user gave; \
                                 it is created if it does not exist."
