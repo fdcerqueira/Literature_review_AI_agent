@@ -16,7 +16,7 @@ work on out of the main conversation, and both run on a cheaper model than the c
 | `download_pubmed` | Downloads PMC open-access papers: the PDF plus a markdown version of the full text, converted from PMC's structured XML. |
 | `download_biorxiv` | Downloads a preprint's PDF from biorxiv.org and extracts its text alongside it. |
 | `create_summary` | Reads every downloaded paper in a folder, one subagent call per paper, and returns a short summary of each. |
-| `save_report` | Writes the report to a file, one section per call, so long reports are not truncated. |
+| `save_report` | Writes the report to a file. |
 
 Papers come back as **PDF + markdown** from PubMed Central and **PDF + plain text**
 from bioRxiv. 
