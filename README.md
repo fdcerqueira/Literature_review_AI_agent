@@ -105,7 +105,7 @@ not exist.
 - Search quality depends entirely on the query the model writes. Read the queries it
   reports.
 
-## References
+## Dependencies
 
 [rig](https://github.com/0xPlaygrounds/rig) ·
 [pubmed-client](https://crates.io/crates/pubmed-client) ·
@@ -117,4 +117,4 @@ not exist.
 Literature data comes from [PubMed](https://pubmed.ncbi.nlm.nih.gov/),
 [PubMed Central](https://www.ncbi.nlm.nih.gov/pmc/),
 [Europe PMC](https://europepmc.org/) and [bioRxiv](https://www.biorxiv.org/).
-Please respect their terms of use and rate limits.
+
