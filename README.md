@@ -1,82 +1,121 @@
-A command-line research assistant for literature searches. You describe a topic in
-plain language. The agent turns it into database queries, searches **PubMed** and
-**bioRxiv**, downloads the papers it finds, and may write a summary if you choose into 
-a folder of your choice.
-The LLM decides which searches to run and what to write. Everything, from the queries, 
-downloads, files goes through five tools defined. 
+A command-line research assistant for literature searches. The user describes a topic.   
+The agent turns it into database queries, searches **PubMed** and
+**bioRxiv**, optionally screens the results for relevance before download, downloads the papers, and if
+asked reads them and writes a summary report into tho chosen folder.
 
-e.g.
-```
->  5 most recent papers on new metagenonomics assemblers, bioRxiv
+Two of those tools employ their own **subagents**: one screens search results against
+what the user asked for, the other reads each downloaded paper. Both keep the text they
+work on out of the main conversation, and both run on a cheaper model than the conversation does.
 
-  searching bioRxiv: metagenome assembler OR metagenomic assembly algorithm
-  downloading 10.1101/2025.09.05.674543 from bioRxiv
-  downloading 10.1101/2024.08.09.607291 from bioRxiv
-  writing summary.md
-
-Saved 5 preprints and summary.md to /data/projects/assembly_review.
-Two PDFs were refused by bioRxiv's rate limiter; try those again in a few minutes.
-```
-
-## What it does
+## Tools
 
 | Tool | What it does |
 |---|---|
-| `search_pubmed` | Searches PubMed for papers with free full text, published after a given year. Returns PMID, PMC id, DOI and title, one line each. |
+| `search_pubmed` | Searches PubMed for papers with free full text, published after a given year. Returns PMID, PMC id, DOI, title and abstract. With screening on, a subagent reads those abstracts and only the matching papers come back. |
+| `search_biorxiv` | The same for bioRxiv preprints, through Europe PMC, returning DOI, year, title and abstract. |
 | `download_pubmed` | Downloads PMC open-access papers: the PDF plus a markdown version of the full text, converted from PMC's structured XML. |
-| `search_biorxiv` | Searches bioRxiv preprints through Europe PMC. Returns DOI, year and title. |
 | `download_biorxiv` | Downloads a preprint's PDF from biorxiv.org and extracts its text alongside it. |
-| `save_report` | Writes the model's summary to a file, one section per call, so long reports are not truncated. |
+| `create_summary` | Reads every downloaded paper in a folder, one subagent call per paper, and returns a short summary of each. |
+| `save_report` | Writes the report to a file, one section per call, so long reports are not truncated. |
 
 Papers come back as **PDF + markdown** from PubMed Central and **PDF + plain text**
-from bioRxiv. Preprint PDFs carry no structure worth converting, so their text is
-extracted as-is.
+from bioRxiv. 
 
+Everything PMC gives alongside an article: figures, supplementary tables, its XML
+and JSON, goes into an `other_files/` subfolder. When
+screening is used, the papers it dropped are listed in `out_of_scope_papers.md` with
+their identifiers and the reason each was excluded, so nothing disappears silently.
+
+## Providers
+
+The provider is whichever API key is set. Exactly one, or it refuses to start. Each provider names two models: the conversation runs on the capable one,
+the two subagents on the cheaper one.
+
+| Key | Conversation | Screener + summarizer |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | claude-opus-5-5 | claude-haiku-4-5 |
+| `OPENAI_API_KEY` | gpt-5.6 | gpt-5-mini |
+| `MOONSHOT_API_KEY` | kimi-k2.6 | kimi-k2.5 |
+| `DEEPSEEK_API_KEY` | deepseek-v4-pro | deepseek-flash |
+
+Both are one line each to change, in `Provider::model()` and
+`Provider::worker_model()`. To use different models, edit two functions in `src/main.rs`: **`model()` at line 41**
+picks the conversation model, **`worker_model()` at line 51** picks the one the
+screener and the summarizer run on. One line per provider in each, then
+`cargo build --release`. 
+
+## What it costs
+
+Screening and reading are optional and the agent asks before either. Reading is by
+far the expensive one. Rough figures from a five-paper run:
+
+| Step | Relative | On which model |
+|---|---|---|
+| Search and download | **1×** | conversation model |
+| Screening 10 candidates | **0.25×** | worker model |
+| Reading 5 papers | **2×–8×** | worker model |
+| Writing the report | **~1×** | conversation model |
+
+Reading requires more  tokens, despite the fact it runs on subagent, which is a fraction of the price. 
+
+- With `show_usage` on, the per-turn token counts are the **main agent's only**.
+- 
 ## Requirements
 
 - Rust 1.98 or newer (edition 2024)
-- An OpenAI API key
+- An API key for one of the four providers above
 
-## Installation  
+## Installation
 
-To install Rust and Cargo follow the instructions in https://doc.rust-lang.org/cargo/getting-started/installation.html  
+To install Rust and Cargo, follow the instructions at
+https://doc.rust-lang.org/cargo/getting-started/installation.html
 
-Download the repo.  
 ```bash
 git clone <this repository>
 cd lit_agent
-cargo build --release
 ```
 
 ## Usage
 
 ```bash
-export OPENAI_API_KEY='...'
+export ANTHROPIC_API_KEY='...'      # or OPENAI_, MOONSHOT_, DEEPSEEK_
 cargo run --release
 ```
 
-Then talk to it. It will ask what you want to search for, which database to use,
-how many papers, from which year, and where to save them. Type `exit` to leave.
+`cargo run` builds first if anything changed, so the first run takes a few minutes
+while the dependencies compile and later ones start immediately.    
 
-Give it an **absolute path** for the output folder. The folder is created if it does not exist.
 
+It prints which provider and models it is using, then asks what you want to search
+for, which database, how many papers, from which year, where to save them, whether to
+screen the results, and whether to read the papers and write a report. Type `exit` to
+leave.
+
+Give it an **absolute path** for the output folder. The folder is created if it does
+not exist.
 
 ## Limitations
 
-- PubMed downloads Papers with a PMC id. They might not be downloadable.
-- Text extracted from bioRxiv PDFs keeps the line numbers printed in the margin and
-  can lose some ligatures. It is meant for machine reading, not for printing.
-- The search quality depends entirely on the query the model writes. Read the
-  queries it reports.
+- PubMed downloads cover the PMC **open-access subset**. A paper with a PMC id is not
+  necessarily downloadable, and some records have no article PDF at all — the
+  markdown is still produced.
+- Each paper is truncated at 150,000 characters before it reaches the summarizer.
+  Longer papers lose their final sections, and the summary says so when it happens.
+- bioRxiv's rate limit is shared across runs from the same address. Several sessions
+  in a few minutes will hit it even with the pause is set to.
+- Search quality depends entirely on the query the model writes. Read the queries it
+  reports.
 
-## Built with
+## References
 
 [rig](https://github.com/0xPlaygrounds/rig) ·
 [pubmed-client](https://crates.io/crates/pubmed-client) ·
 [pdf-extract](https://crates.io/crates/pdf-extract) ·
 [reqwest](https://crates.io/crates/reqwest) ·
+[reqwest-retry](https://crates.io/crates/reqwest-retry) ·
 [tokio](https://tokio.rs)
 
 Literature data comes from [PubMed](https://pubmed.ncbi.nlm.nih.gov/),
 [PubMed Central](https://www.ncbi.nlm.nih.gov/pmc/),
-and [bioRxiv](https://www.biorxiv.org/).
+[Europe PMC](https://europepmc.org/) and [bioRxiv](https://www.biorxiv.org/).
+Please respect their terms of use and rate limits.
