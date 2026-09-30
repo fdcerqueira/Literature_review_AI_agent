@@ -106,7 +106,6 @@ fn progress(what: &str) {
             .search_and_fetch(&client.pubmed)
             .await?;
 
-        //the dropped ones are listed too, with their ids: the reader may want to see what got out
         let mut dropped = 0;
         let mut dropped_list = String::new();
         for i in &articles {
@@ -208,8 +207,6 @@ async fn call(&self,_context: &mut ToolContext,args: Self::Args)-> Result<Self::
         }
         progress(&format!("downloading {i} from PubMed Central"));
         if let Ok(full_text)=client.fetch_full_text(&i).await {
-
-            //folder the user gave holds one pdf and one .md per paper and nothing else
             let other_files = Path::new(&args.output_dir).join("other_files");
             //what became of the pdf, so the line at the end of the loop can say it. not
             //every paper has one: a deposited manuscript often has only figures and text
@@ -327,8 +324,6 @@ impl Tool for SearchBiorXvir {
             "(SRC:PPR AND PUBLISHER:\"bioRxiv\") AND ({}) AND PUB_YEAR:[{} TO *]",
             args.query, args.year
         );
-
-        //the plain search() returns the lite format, which has no abstract. 
         let client_bio = Client::new();
         let articles_bio = client_bio.europe_pmc
             .search_all(&query, args.limit, &EuropePmcSearchOptions {
