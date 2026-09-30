@@ -97,8 +97,7 @@ not exist.
 ## Limitations
 
 - PubMed downloads cover the PMC **open-access subset**. A paper with a PMC id is not
-  necessarily downloadable, and some records have no article PDF at all — the
-  markdown is still produced.
+  necessarily downloadable.
 - Each paper is truncated at 150,000 characters before it reaches the summarizer.
   Longer papers lose their final sections, and the summary says so when it happens.
 - bioRxiv's rate limit is shared across runs from the same address. Several sessions
