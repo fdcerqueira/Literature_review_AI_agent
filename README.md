@@ -59,7 +59,7 @@ far the expensive one. Rough figures from a five-paper run:
 Reading requires more  tokens, despite the fact it runs on subagent, which is a fraction of the price. 
 
 - With `show_usage` on, the per-turn token counts are the **main agent's only**.
-- 
+  
 ## Requirements
 
 - Rust 1.98 or newer (edition 2024)
