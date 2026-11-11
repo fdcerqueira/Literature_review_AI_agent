@@ -237,8 +237,7 @@ async fn call(&self,_context: &mut ToolContext,args: Self::Args)-> Result<Self::
 
             //folder the user gave holds one pdf and one .md per paper and nothing else
             let other_files = Path::new(&args.output_dir).join("other_files");
-            //what became of the pdf, so the line at the end of the loop can say it. not
-            //every paper has one: a deposited manuscript often has only figures and text
+            //what became of the pdf, so the line at the end of the loop can say it.
             let mut pdf = String::from("no pdf, PMC has none for this id");
             match client.download_files(&i, &other_files).await {
                 Err(e) => pdf = format!("no pdf: {e}"),
